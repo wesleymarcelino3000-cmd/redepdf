@@ -1,44 +1,38 @@
 import { put } from '@vercel/blob';
-import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-function cleanFileName(name) {
-  return name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9._-]/g, '-')
-    .replace(/-+/g, '-')
-    .toLowerCase();
-}
-
-export async function POST(request) {
+export async function POST(req) {
   try {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      return NextResponse.json({ error: 'Variável BLOB_READ_WRITE_TOKEN não encontrada no Vercel.' }, { status: 500 });
+    const formData = await req.formData();
+    const files = formData.getAll('files');
+
+    if (!files || files.length === 0) {
+      return Response.json({ error: 'Nenhum arquivo enviado' }, { status: 400 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file');
+    const uploads = [];
 
-    if (!file || typeof file === 'string') {
-      return NextResponse.json({ error: 'Nenhum arquivo enviado.' }, { status: 400 });
+    for (const file of files) {
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        continue;
+      }
+
+      const safeName = file.name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9._-]/g, '_');
+
+      const blob = await put(`pdfs/${Date.now()}-${safeName}`, file, {
+        access: 'public',
+        addRandomSuffix: true,
+      });
+
+      uploads.push(blob);
     }
 
-    if (file.type !== 'application/pdf') {
-      return NextResponse.json({ error: 'Envie apenas PDF.' }, { status: 400 });
-    }
-
-    const safeName = cleanFileName(file.name || 'arquivo.pdf');
-    const pathname = `pdfs/${Date.now()}-${safeName}`;
-
-    const blob = await put(pathname, file, {
-      access: 'public',
-      addRandomSuffix: false
-    });
-
-    return NextResponse.json({ ok: true, file: blob });
+    return Response.json({ success: true, uploads });
   } catch (error) {
-    return NextResponse.json({ error: error.message || 'Erro interno no upload.' }, { status: 500 });
+    return Response.json({ error: error.message }, { status: 500 });
   }
 }
