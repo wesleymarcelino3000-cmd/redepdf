@@ -1,8 +1,15 @@
-import './style.css';
-
 export const metadata = {
-  title: 'RedePDF',
-  description: 'Servidor simples de PDFs com Vercel Blob'
+  title: 'RedePDF Premium',
+  description: 'Servidor premium de PDFs com Vercel Blob',
+  icons: {
+    icon: '/icon.png',
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/manifest.json',
+};
+
+export const viewport = {
+  themeColor: '#07111f',
 };
 
 export default function RootLayout({ children }) {
